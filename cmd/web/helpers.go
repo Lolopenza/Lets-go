@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"time"
 )
 
 func (app *application) serverError(w http.ResponseWriter, err error) {
@@ -33,6 +34,8 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, name stri
 	// Write the template to the buffer, instead of straight to the
 	// http.ResponseWriter. If there's an error, call our serverError helper and then
 	// return.
+
+	td = app.addDefaultData(td, r)
 	err := ts.Execute(buf, td)
 	if err != nil {
 		app.serverError(w, err)
@@ -42,4 +45,14 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, name stri
 	// is another time where we pass our http.ResponseWriter to a function that
 	// takes an io.Writer.
 	buf.WriteTo(w)
+}
+
+func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
+	if td == nil {
+		td = &templateData{}
+	}
+	td.CurrentYear = time.Now().Year()
+
+	td.Flash = app.session.PopString(r, "flash")
+	return td
 }
