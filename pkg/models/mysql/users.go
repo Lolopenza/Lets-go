@@ -77,3 +77,40 @@ func (m *UserModel) Get(id int) (*models.User, error) {
 
 	return u, nil
 }
+
+func (m *UserModel) ChangePassword(id int, currentPassword, newPassword string) error {
+	var hashedPassword string
+
+	stmt := `SELECT hashed_password FROM users WHERE id = ?`
+
+	err := m.DB.QueryRow(stmt, id).Scan(&hashedPassword)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.ErrNoRecord
+		}
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(currentPassword))
+	if err != nil {
+		// Wrong password
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return models.ErrInvalidCredentials
+		}
+		return err
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	if err != nil {
+		return err
+	}
+
+	updateStmt := `UPDATE users SET hashed_password = ? WHERE id = ?`
+
+	_, err = m.DB.Exec(updateStmt, newHash, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

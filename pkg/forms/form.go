@@ -77,3 +77,11 @@ func (f *Form) MathchesPattern(field string, pattern *regexp.Regexp) {
 func (f *Form) Valid() bool {
 	return len(f.Errors) == 0
 }
+
+func (f *Form) Equal(field string, sfield string) {
+	value := f.Get(field)
+	svalue := f.Get(sfield)
+	if value != svalue {
+		f.Errors.Add(field, "Passwords do not match")
+	}
+}
